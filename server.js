@@ -14,7 +14,13 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT;
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(
+  cors({
+    origin: ["https://donar-app-frontend-7244.vercel.app"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
