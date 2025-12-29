@@ -5,14 +5,13 @@ import authRoute from "./routes/authRoute.js";
 import registerDonorRoute from "./routes/registerDonorRoute.js";
 import requestRoute from "./routes/requestRoute.js";
 
-
 import cors from "cors";
 
 dotenv.config();
 connectDB();
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
 app.use(
   cors({
@@ -27,9 +26,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoute);
 app.use("/api/donors", registerDonorRoute);
 app.use("/api/request", requestRoute);
-
-
-
 
 app.get("/", (req, res) => {
   try {
