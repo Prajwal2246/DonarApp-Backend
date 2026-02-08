@@ -15,9 +15,11 @@ const PORT = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: ["https://donar-app-frontend.vercel.app"],
+    origin: "https://donar-app-frontend.vercel.app", 
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  }),
+  })
 );
 
 app.use(express.json());
