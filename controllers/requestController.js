@@ -8,27 +8,31 @@ export const sendRequest = async (req, res) => {
     const requesterId = req.user.id;
     const { donorId } = req.body;
 
-    // Find donor
+    // 1. Find the donor being requested
     const donor = await Donor.findById(donorId);
     if (!donor) return res.status(400).json({ message: "Donor not found" });
 
-    // Find requester
-    const requester = await User.findById(requesterId);
-    if (!requester)
-      return res.status(400).json({ message: "Requester not found" });
+    // 2. IMPORTANT: Find the REQUESTER'S donor profile to get their address
+    const requesterProfile = await Donor.findOne({ userId: requesterId });
+    
+    // 3. Find basic requester user data as a backup
+    const requesterUser = await User.findById(requesterId);
+    if (!requesterUser) return res.status(400).json({ message: "Requester not found" });
 
     // Prevent duplicate request
     const existing = await Request.findOne({ requesterId, donorId });
-    if (existing)
-      return res.status(400).json({ message: "Request already sent" });
+    if (existing) return res.status(400).json({ message: "Request already sent" });
 
+    // 4. Use the data from the requester's Donor profile
     const newRequest = await Request.create({
       requesterId,
       donorId,
-      manualLocation: requester.manualLocation || "",
-      location: requester.location
-        ? requester.location.coordinates.join(",")
-        : "",
+      // Pull manualLocation from Donor profile, if not found, use User profile
+      manualLocation: requesterProfile?.manualLocation || requesterUser?.manualLocation || "",
+      // Correctly format the coordinates string from the Donor profile
+      location: requesterProfile?.location?.coordinates 
+        ? requesterProfile.location.coordinates.join(",") 
+        : (requesterUser?.location?.coordinates ? requesterUser.location.coordinates.join(",") : ""),
     });
 
     res.status(201).json({

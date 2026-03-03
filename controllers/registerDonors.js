@@ -8,7 +8,7 @@ export const registerDonor = async (req, res) => {
         `https://nominatim.openstreetmap.org/search`,
         {
           params: { q: address, format: "json", limit: 1 },
-        }
+        },
       );
       if (response.data.length > 0) {
         return {
@@ -23,6 +23,33 @@ export const registerDonor = async (req, res) => {
     }
   };
 
+  const convertCoordinatesToAddress = async (lat, lon) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse`,
+        {
+          params: {
+            lat: lat,
+            lon: lon,
+            format: "json",
+          },
+          headers: {
+            "User-Agent": "BloodDonationApp/1.0 (contact@yourdomain.com)",
+          },
+        },
+      );
+
+      if (response.data && response.data.display_name) {
+        // display_name gives the full string address
+        return response.data.display_name;
+      }
+
+      return "Address not found";
+    } catch (err) {
+      console.error("Reverse Geocoding error:", err.message);
+      return null;
+    }
+  };
   try {
     if (!req.user?.id) {
       return res.status(401).json({ message: "User not authenticated" });
@@ -47,8 +74,8 @@ export const registerDonor = async (req, res) => {
       manualLocation,
     } = req.body;
 
-    let finalLat = latitude;
-    let finalLon = longitude;
+    let finalLat = Number(latitude);
+    let finalLon = Number(longitude);
 
     // 👉 FIX: consider 0, null, undefined as missing
     const coordsMissing =
@@ -56,8 +83,8 @@ export const registerDonor = async (req, res) => {
       finalLon === undefined ||
       finalLat === null ||
       finalLon === null ||
-      finalLat === 0 ||
-      finalLon === 0;
+      isNaN(finalLat) ||
+      isNaN(finalLon);
 
     // 👉 Auto geocode when coords are missing
     if (coordsMissing && manualLocation) {
@@ -73,13 +100,15 @@ export const registerDonor = async (req, res) => {
       return res.status(400).json({ message: "Could not retrieve location" });
     }
 
+    const address = await convertCoordinatesToAddress(latitude, longitude);
+
     const donor = await Donor.create({
       userId,
       name,
       email,
       phoneNumber,
       bloodType,
-      manualLocation,
+      manualLocation: address,
       location: { type: "Point", coordinates: [finalLon, finalLat] },
     });
 
